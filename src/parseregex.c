@@ -36,14 +36,17 @@ re_ast_t* make_ccl_node(char* ccl) {
 
 void print_ast(re_ast_t* ast, int d) {
     if (ast != NULL) {
-        print_ast(ast->left, d+1);
-        for (int i = 0; i < d; i++) printf(" ");
+        for (int i = 0; i < d; i++) 
+            printf(" ");
         if (ast->type == CHCLASS) {
             printf("%s\n", ast->ccl);
         } else {
             printf("%c\n", ast->ch);
         }
-        print_ast(ast->right, d+1);
+        if (ast->left != NULL)
+            print_ast(ast->left, d+1);
+        if (ast->right != NULL)
+            print_ast(ast->right, d+1);
     }
 }
 
@@ -80,6 +83,7 @@ bool expect(ParseStr_t* str, char ch) {
 
 bool match(ParseStr_t* str, char ch) {
     if (expect(str, ch)) {
+        printf("Matched '%c'\n", lookahead(str));
         advance(str);
         return true;
     }
@@ -115,24 +119,29 @@ re_ast_t* factor(ParseStr_t* str) {
         node = expr(str);
         match(str, ')');
     } else if (expect(str, '[')) {
+        advance(str);
         char* ccl;
-        int lend = str->pos;
-        while (!done(str) && !expect(str, ']')) lend++;
-        int len = lend-str->pos;
+        int og = str->pos;
+        int lend = og;
+        while (!done(str) && !expect(str, ']')) {
+            lend++; printf("%c ", lookahead(str));
+            advance(str);
+        }
+        advance(str);
+        int len = lend-og;
         ccl = malloc(sizeof(char)*(len+1));
-        strncpy(ccl, str->data+str->pos, len);
-        str->pos = lend;
+        strncpy(ccl, str->data+og, len);
         node = make_ccl_node(ccl);
     } else if (is_digit(lookahead(str)) || is_char(lookahead(str)) || expect(str, '.')) {
         node = make_char_node(lookahead(str));
-        advance(str);
+        match(str, lookahead(str));
     }
 
     if (expect(str, '*') || expect(str, '+') || expect(str, '?')) {
         re_ast_t* t = make_op_node(lookahead(str));
-        t->left = node;
+        match(str, lookahead(str));
+        t->left = node;                            
         node = t;
-        advance(str);
     }
     return node;
 }
@@ -160,7 +169,9 @@ re_ast_t* expr(ParseStr_t* str) {
     return node;
 }
 
-re_ast_t* parse(char* regex) {
+re_ast_t* parse(char* pattern) {
+    char* regex = malloc(sizeof(char)*(strlen(pattern) + 7));
+    sprintf(regex, "(.*%s.*)", pattern);
     ParseStr_t str;
     str.data = regex;
     str.pos = 0;

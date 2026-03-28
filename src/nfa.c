@@ -160,8 +160,11 @@ void compile(re_ast_t* ast, nfa_stack_t* stack) {
 }
 
 re_nfa_t* build(re_ast_t* ast) {
-    nfa_stack_t stack;
-    compile(ast, &stack);
-    return pop_nfa_stack(&stack);
+    nfa_stack_t* stack = malloc(sizeof(nfa_stack_t));
+    stack->sp = 0;
+    compile(ast, stack);
+    re_nfa_t* nfa = pop_nfa_stack(stack);
+    free(stack);
+    return nfa;
 }
 

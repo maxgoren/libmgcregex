@@ -16,6 +16,7 @@ typedef struct re_ast_t {
 } re_ast_t;
 
 re_ast_t* parse(char* regex);
+void print_ast(re_ast_t* ast, int d);
 void free_ast(re_ast_t* ast);
 
 #endif
