@@ -23,7 +23,6 @@ bool match_ccl(char ch, re_nfa_transition_t* trans) {
 }
 
 set_node* move(char ch, set_node* states) {
-    printf("Processing move from: %c\n", ch);
     set_node* next = NULL;
     for (set_node* it = states; it != NULL; it = it->next) {
         for (int i = 0; i < 2; i++) {
@@ -31,11 +30,9 @@ set_node* move(char ch, set_node* states) {
             if (trans != NULL && trans->is_epsilon == false) {
                 if (trans->is_ccl) {
                     if (match_ccl(ch, trans)) {
-                        printf("Oh yeah, %c\n", ch);
                         next = set_add(next, trans->dest);
                     }
                 } else if (trans->data[0] == ch || trans->data[0] == '.') {
-                    printf("match on %c from %d to %d\n", ch, it->data->label, trans->dest->label);
                     next = set_add(next, trans->dest);
                 }
             }
@@ -51,14 +48,12 @@ set_node* e_closure(set_node* states) {
     int st = 0;
     for (set_node* it = states; it != NULL; it = it->next) {
         ss[st++] = it->data;
-        printf("e_closure from %d\n", it->data->label);
     }
     while (st > 0) {
         re_nfa_state_t* curr = ss[--st];
         for (int i = 0; i < 2; i++) {
             re_nfa_transition_t* trans = curr->trans[i];
             if (trans != NULL && trans->is_epsilon) {
-                printf("Adding eps from %d to %d\n", curr->label, trans->dest->label);
                 next = set_add(next, trans->dest);
                 ss[st++] = trans->dest;
             }
@@ -68,18 +63,18 @@ set_node* e_closure(set_node* states) {
 }
 
 bool match_re(re_nfa_t* nfa, char* text) {
-    printf("Start: %d, Accept: %d\n", nfa->start->label, nfa->accept->label);
     set_node* states = NULL;
     states = set_add(states, nfa->start);
     states = e_closure(states);
+    bool did_find = false;
     for (int i = 0; text[i] != '\0'; i++) {
         states = move(text[i], states);
         states = e_closure(states);
         if (states == NULL)
             return false;
         if (set_find(states, nfa->accept)) {
-            printf("Possibly...");
+            did_find = true;
         }
     }
-    return set_find(states, nfa->accept);
+    return did_find;
 }
