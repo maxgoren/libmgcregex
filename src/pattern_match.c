@@ -67,6 +67,8 @@ bool match_re(re_nfa_t* nfa, char* text) {
     states = set_add(states, nfa->start);
     states = e_closure(states);
     bool did_find = false;
+    int match_from = 0;
+    int match_len = 0;
     for (int i = 0; text[i] != '\0'; i++) {
         states = move(text[i], states);
         states = e_closure(states);
@@ -74,6 +76,7 @@ bool match_re(re_nfa_t* nfa, char* text) {
             return false;
         if (set_find(states, nfa->accept)) {
             did_find = true;
+            match_len = i;
         }
     }
     return did_find;

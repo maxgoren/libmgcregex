@@ -145,9 +145,13 @@ void compile(re_ast_t* ast, nfa_stack_t* stack) {
                 re_nfa_t* lhs = pop_nfa_stack(stack);
                 push_nfa_stack(stack, makeKleeneNFA(lhs));
             } break;
+            case '+': {
+                compile(ast->left, stack);
+                re_nfa_t* lhs = pop_nfa_stack(stack);
+                push_nfa_stack(stack, makeConcatNFA(lhs, makeKleeneNFA(lhs)));
+            } break;
             case '?': {
                 compile(ast->left, stack);
-                compile(ast->right, stack);
                 re_nfa_t* lhs = pop_nfa_stack(stack);
                 re_nfa_t* rhs = makeAtomicNFA(make_epsilon_transition(NULL));
                 rhs->start->trans[0]->dest = rhs->accept;

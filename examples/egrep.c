@@ -13,8 +13,15 @@ void fromStdIn(char* pattern) {
         }
     }
 }
+void show_use() {
+    puts("egrep <pattern>");
+}
 
 int main(int argc, char* argv[]) {
+    if (argc < 2) {
+        show_use();
+        return 0;
+    }
     fromStdIn(argv[1]);
     return 0;
 }
