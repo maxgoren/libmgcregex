@@ -3,8 +3,12 @@
 #include "set.h"
 
 
-void init_set(OrderedSet* set, int (*cmp)(void*,void*)) {
+void initSet(OrderedSet* set, int (*cmp)(void*,void*)) {
     rb_init(set, cmp);
+}
+
+void destroySet(OrderedSet* set) {
+    rb_destroy(set);
 }
 
 void setAdd(OrderedSet* set, void* data) {
@@ -15,12 +19,12 @@ void setErase(OrderedSet* set, void* data) {
     rb_erase(set, data);
 }
 
-SetItem* setGet(OrderedSet* set, void* key) {
+SetItem* setGetItem(OrderedSet* set, void* key) {
     return rb_search(set, key);
 }
 
 bool setContains(OrderedSet* set, void* key) {
-    return setGet(set, key) != NULL;
+    return setGetItem(set, key) != NULL;
 }
 
 int setSize(OrderedSet* set) {
@@ -101,7 +105,7 @@ OrderedSet* set_intersection(OrderedSet* set, RBIterator* lit, RBIterator* rit) 
 
 OrderedSet* set_merge(OrderedSet* lhs, OrderedSet* rhs, OrderedSet* (*operation)(OrderedSet*,RBIterator*,RBIterator*)) {
     OrderedSet* set = malloc(sizeof(OrderedSet));
-    init_set(set, lhs->cmpfunc);
+    initSet(set, lhs->cmpfunc);
     RBIterator lit, rit;
     rb_iter_init(&lit, lhs);
     rb_iter_init(&rit, rhs);

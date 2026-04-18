@@ -28,6 +28,7 @@ typedef struct RedBlackBST {
     int (*cmpfunc)(void*,void*);
 } RedBlackBST;
 
+//search tree
 void rb_init(RedBlackBST* rbt, int (*cmpfunc)(void*,void*));
 void rb_destroy(RedBlackBST* rbt);
 RedBlackBST* rb_clone(RedBlackBST* rbst);
@@ -37,6 +38,7 @@ void rb_insert(RedBlackBST* rbst, void* key, void* value);
 rbentry* rb_search(RedBlackBST* rbt, void* key);
 void rb_for_each(RedBlackBST* rbt, void (*callback)(rbentry*));
 
+//iterator
 void rb_iter_init(RBIterator* iter, RedBlackBST* rbt);
 rbentry* rb_iter_get(RBIterator* iter);
 void rb_iter_next(RBIterator* iter);

@@ -4,6 +4,7 @@
 #include <string.h>
 #include "pattern_match.h"
 #include "set.h"
+#include "stack.h"
 
 bool checkRange(char check, char low, char high) {
     return check >= low && check <= high;
@@ -24,10 +25,10 @@ bool match_ccl(char ch, re_nfa_transition_t* trans) {
 
 OrderedSet* move(char ch, OrderedSet* states) {
     OrderedSet* next = malloc(sizeof(OrderedSet));
-    init_set(next, states->cmpfunc);
+    initSet(next, states->cmpfunc);
     RBIterator it;
     rb_iter_init(&it, states);
-    for (; !rb_iter_done(&it); rb_iter_next(&it)) {
+    while (!rb_iter_done(&it)) {
         for (int i = 0; i < 2; i++) {
             re_nfa_transition_t* trans = ((re_nfa_state_t*)rb_iter_get(&it)->value)->trans[i];
             if (trans != NULL && trans->is_epsilon == false) {
@@ -40,27 +41,32 @@ OrderedSet* move(char ch, OrderedSet* states) {
                 }
             }
         }
+        rb_iter_next(&it);
     }
+    rb_destroy(states);
     return next;
 }
 
 
 OrderedSet* e_closure(OrderedSet* states) {
     OrderedSet* next = states;
-    re_nfa_state_t* ss[255];
-    int st = 0;
+    Stack ss;
+    initStack(&ss);
     RBIterator it;
     rb_iter_init(&it, states);
-    for (; !rb_iter_done(&it); rb_iter_next(&it)) {
-        ss[st++] = ((re_nfa_state_t*)rb_iter_get(&it)->value);
+    while (!rb_iter_done(&it)) {
+        push(&ss, rb_iter_get(&it)->value);
+        rb_iter_next(&it);
     }
-    while (st > 0) {
-        re_nfa_state_t* curr = ss[--st];
+    while (!empty(&ss)) {
+        re_nfa_state_t* curr = pop(&ss);
         for (int i = 0; i < 2; i++) {
             re_nfa_transition_t* trans = curr->trans[i];
             if (trans != NULL && trans->is_epsilon) {
-                setAdd(next, trans->dest);
-                ss[st++] = trans->dest;
+                if (!setContains(next, trans->dest)) {
+                    setAdd(next, trans->dest);
+                    push(&ss,trans->dest);
+                }
             }
         }
     }
@@ -77,21 +83,19 @@ int cmp_states(void* l, void* r) {
 
 bool match_re(re_nfa_t* nfa, char* text) {
     OrderedSet *states = malloc(sizeof(OrderedSet));
-    init_set(states, &cmp_states);
+    initSet(states, &cmp_states);
     setAdd(states, nfa->start);
     states = e_closure(states);
     bool did_find = false;
-    int match_from = 0;
-    int match_len = 0;
     for (int i = 0; text[i] != '\0'; i++) {
         states = move(text[i], states);
         states = e_closure(states);
         if (setEmpty(states))
-            return false;
+            break;
         if (setContains(states, nfa->accept)) {
             did_find = true;
-            match_len = i;
         }
     }
+    rb_destroy(states);
     return did_find;
 }
