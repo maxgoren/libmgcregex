@@ -28,6 +28,11 @@ re_nfa_transition_t* alloc_trans() {
     return &transpool[next_free_tr++];
 }
 
+void reset_allocators() {
+    next_free_tr = 0;
+    next_free_st = 0;
+}
+
 re_nfa_state_t* make_nfa_state(State label) {
     re_nfa_state_t* state = alloc_state();
     state->label = label;
@@ -62,6 +67,7 @@ re_nfa_transition_t* make_epsilon_transition(re_nfa_state_t* dest) {
     trans->is_epsilon = true;
     return trans;
 }
+
 int nextLabel() {
     static int next = 0;
     return next++;
@@ -102,16 +108,34 @@ re_nfa_t* makeAltNFA(re_nfa_t* a, re_nfa_t* b) {
     return makeNFA(ns, ts);
 }
 
-re_nfa_t* makeKleeneNFA(re_nfa_t* nfa) {
+re_nfa_t* makeKleeneNFA(re_nfa_t* nfa, bool need_once) {
     re_nfa_state_t* ns = alloc_state();
     re_nfa_state_t* ts = alloc_state();
     ns->label = nextLabel();
     ts->label = nextLabel();
     ns->trans[0] = make_epsilon_transition(nfa->start);
-    ns->trans[1] = make_epsilon_transition(ts);
+    if (need_once == false)
+        ns->trans[1] = make_epsilon_transition(ts);
     nfa->accept->trans[0] = make_epsilon_transition(ts);
     nfa->accept->trans[1] = make_epsilon_transition(nfa->start);
     return makeNFA(ns, ts);
+}
+
+re_nfa_state_t* add_tag(re_nfa_state_t* state, TagType type, int group) {
+    re_tag_t* tag = malloc(sizeof(re_tag_t));
+    tag->group = group;
+    tag->type = type;
+    tag->next = state->tag;
+    state->tag = tag;
+    state->is_tagged = true;
+    return state;
+}
+
+re_nfa_t* makeTaggedNFA(int group, re_nfa_t* nfa)  {
+    nfa->start = add_tag(nfa->start, START, group);
+    nfa->accept = add_tag(nfa->accept, END, group);
+    printf("Tagged group %d to states %d and %d\n", group, nfa->start->label, nfa->accept->label);
+    return nfa;
 }
 
 void compile(re_ast_t* ast, Stack* stack) {
@@ -120,7 +144,11 @@ void compile(re_ast_t* ast, Stack* stack) {
     if (ast->type == LIT) {
         push(stack, makeAtomicNFA(make_char_transition(NULL, ast->ch)));
     } else if (ast->type == CHCLASS) {
-        push(stack, makeAtomicNFA(make_ccl_transition(NULL, ast->ccl)));      
+        push(stack, makeAtomicNFA(make_ccl_transition(NULL, ast->ccl)));
+    } else if (ast->type == CAPGRP) {
+        compile(ast->left, stack);
+        re_nfa_t* nfa = pop(stack);
+        push(stack, makeTaggedNFA(ast->group, nfa));
     } else {
         switch (ast->ch) {
             case '|': {
@@ -140,12 +168,12 @@ void compile(re_ast_t* ast, Stack* stack) {
             case '*': {
                 compile(ast->left, stack);
                 re_nfa_t* lhs = pop(stack);
-                push(stack, makeKleeneNFA(lhs));
+                push(stack, makeKleeneNFA(lhs, false));
             } break;
             case '+': {
                 compile(ast->left, stack);
                 re_nfa_t* lhs = pop(stack);
-                push(stack, makeConcatNFA(lhs, makeKleeneNFA(lhs)));
+                push(stack, makeKleeneNFA(lhs, true));
             } break;
             case '?': {
                 compile(ast->left, stack);

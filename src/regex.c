@@ -5,11 +5,16 @@
 #include "pattern_match.h"
 #include "nfa.h"
 
-bool match_text(char* pattern, char* text) {
+MatchContext* match_text(char* pattern, char* text) {
     if (pattern == NULL || text == NULL) {
         return false;
     }
     re_nfa_t* nfa = re2nfa(pattern);
-    bool result = match_re(nfa, text);
+    MatchContext* result = match_re(nfa, text);
     return result;
 }
+
+bool simple_match(char* pattern, char* text) {
+    return match_text(pattern, text)->did_match;
+}
+

@@ -2,7 +2,7 @@
 #define parseregex_h
 
 typedef enum NodeType {
-    LIT, OP, CHCLASS
+    LIT, OP, CHCLASS, CAPGRP
 } NodeType;
 
 typedef struct re_ast_t {
@@ -10,6 +10,7 @@ typedef struct re_ast_t {
     union {
         char ch;
         char* ccl;
+        int group;
     };
     struct re_ast_t* left;
     struct re_ast_t* right;

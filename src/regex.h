@@ -6,6 +6,9 @@
 #include "parseregex.h"
 #include "pattern_match.h"
 
-bool match_text(char* pattern, char* text);
+bool simple_match(char* pattern, char* text);
+
+MatchContext* match_text(char* pattern, char* text);
+
 
 #endif

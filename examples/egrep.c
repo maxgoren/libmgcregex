@@ -8,8 +8,17 @@ void fromStdIn(char* pattern) {
     re_nfa_t* nfa = build(ast);
     char buffer[1024];
     while (fgets(buffer, 1014, stdin)) {
-        if (match_re(nfa, buffer)) {
-            printf("%s", buffer);
+        MatchContext* cxt = match_re(nfa, buffer);
+        if (cxt->did_match) {
+            int i = 0;
+            while (cxt->groups[i] != NULL) {
+                printf("Group %d:", i);
+                for (int j = cxt->groups[i]->start + (i > 0 && (cxt->groups[i-1]->end >= cxt->groups[i]->start)); j <= cxt->groups[i]->end; j++) {
+                    printf("%c", buffer[j]);
+                }
+                printf("\n");
+                i++;
+            }
         }
     }
 }

@@ -9,6 +9,18 @@
 typedef int State;
 typedef struct re_nfa_state_t_ re_nfa_state_t;
 
+typedef enum TagType {
+    START, END
+} TagType;
+
+
+typedef struct re_nfa_tag_t {
+    TagType type;
+    int group;
+    char* str;
+    struct re_nfa_tag_t* next;
+} re_tag_t;
+
 typedef struct re_nfa_transition_t_ {
     char* data;
     bool is_epsilon;
@@ -18,6 +30,8 @@ typedef struct re_nfa_transition_t_ {
 
 typedef struct re_nfa_state_t_ {
     State label;
+    bool is_tagged;
+    re_tag_t* tag;
     re_nfa_transition_t* trans[2];
 } re_nfa_state_t;
 

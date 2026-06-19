@@ -34,12 +34,20 @@ re_ast_t* make_ccl_node(char* ccl) {
     return node;
 }
 
+re_ast_t* make_capture_group_node(int group) {
+    re_ast_t* node = make_ast_node(CAPGRP);
+    node->group = group;
+    return node;
+}
+
 void print_ast(re_ast_t* ast, int d) {
     if (ast != NULL) {
         for (int i = 0; i < d; i++) 
             printf(" ");
         if (ast->type == CHCLASS) {
             printf("%s\n", ast->ccl);
+        } else if (ast->type == CAPGRP) {
+            printf("Capture %d\n", ast->group);
         } else {
             printf("%c\n", ast->ch);
         }
@@ -63,6 +71,7 @@ typedef struct ParseStr_t {
     char* data;
     int len;
     int pos;
+    int capGrp;
 } ParseStr_t;
 
 char lookahead(ParseStr_t* str) {
@@ -115,7 +124,9 @@ re_ast_t* factor(ParseStr_t* str) {
     re_ast_t* node;
     if (expect(str, '(')) {
         match(str, '(');
-        node = expr(str);
+        str->capGrp++;
+        node = make_capture_group_node(str->capGrp);
+        node->left = expr(str);
         match(str, ')');
     } else if (expect(str, '[')) {
         advance(str);
@@ -169,11 +180,12 @@ re_ast_t* expr(ParseStr_t* str) {
 }
 
 re_ast_t* parse(char* pattern) {
-    char* regex = malloc(sizeof(char)*(strlen(pattern) + 7));
-    sprintf(regex, "(.*%s.*)", pattern);
+    char* regex = malloc(sizeof(char)*(strlen(pattern) + 5));
+    sprintf(regex, "(%s)", pattern);
     ParseStr_t str;
     str.data = regex;
     str.pos = 0;
     str.len = strlen(regex);
+    str.capGrp = -1;
     return expr(&str);
 }
