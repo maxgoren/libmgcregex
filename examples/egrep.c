@@ -11,9 +11,9 @@ void fromStdIn(char* pattern) {
         MatchContext* cxt = match_re(nfa, buffer);
         if (cxt->did_match) {
             int i = 0;
-            while (cxt->groups[i] != NULL) {
+            while (cxt->groups[i].start != -1) {
                 printf("Group %d:", i);
-                for (int j = cxt->groups[i]->start + (i > 0 && (cxt->groups[i-1]->end >= cxt->groups[i]->start)); j <= cxt->groups[i]->end; j++) {
+                for (int j = cxt->groups[i].start + (i > 0 && cxt->groups[i].end - cxt->groups[i].start >= 1); j <= cxt->groups[i].end; j++) {
                     printf("%c", buffer[j]);
                 }
                 printf("\n");

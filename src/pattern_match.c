@@ -24,18 +24,14 @@ bool match_ccl(char ch, re_nfa_transition_t* trans) {
 }
 
 
-MatchBounds* addBounds(int l, int r) {
-    MatchBounds* mb = malloc(sizeof(MatchBounds));
-    mb->start = l;
-    mb->end = r;
-    return mb;
-}
-
 
 MatchContext* makeContext() {
     MatchContext* cxt = malloc(sizeof(MatchContext));
     cxt->did_match = false;
-    cxt->num_groups = 0;
+    for (int i = 0; i < MAX_CAPTURE; i++) {
+        cxt->groups[i].start = -1;
+        cxt->groups[i].end = -1;
+    }
     return cxt;
 }
 
@@ -58,15 +54,23 @@ Thread* makeThread(re_nfa_state_t* curr, Thread* prev, int pos, char ch) {
 
 void updateTagContext(MatchContext* cxt, re_nfa_state_t* state, int pos, char ch) {
     for (re_tag_t* t = state->tag; t != NULL; t = t->next) {
-        if (cxt->groups[t->group] == NULL) {
-            cxt->groups[t->group] = addBounds(pos, pos);
-        } else {
-            if (t->type == END) {
-                cxt->groups[t->group]->end = pos;
-            } else if (t->type == START) {
-                cxt->groups[t->group]->start = pos;
-            } 
+        if (t->type == END && (cxt->groups[t->group].end == -1 || pos > cxt->groups[t->group].end)) {
+            cxt->groups[t->group].end = pos;
+        } else if (t->type == START && (cxt->groups[t->group].start == -1 || pos < cxt->groups[t->group].start)) {
+            cxt->groups[t->group].start = pos;
+        } 
+    }
+}
+
+void showWinningPath(Thread* it, MatchContext* cxt, char* text) {
+    if (it != NULL) {
+        showWinningPath(it->previous, cxt, text);
+        if (it->current->is_tagged) {
+            updateTagContext(cxt, it->current, it->pos, it->ch);
+            for (re_tag_t* t = it->current->tag; t != NULL; t = t->next)
+                printf("<%c%d>", t->type == START ? 'S':'E' ,t->group);
         }
+        printf("{%d: %d, %c}", it->current == NULL ?-1:it->current->label, it->pos, it->ch);
     }
 }
 
@@ -93,7 +97,6 @@ OrderedSet* move(char* text, int pos, MatchContext* cxt, OrderedSet* states) {
     return next;
 }
 
-
 OrderedSet* e_closure(OrderedSet* states, MatchContext* cxt, re_nfa_t* nfa, char* text, int pos) {
     char ch = text[pos];
     OrderedSet* next = states;
@@ -109,20 +112,14 @@ OrderedSet* e_closure(OrderedSet* states, MatchContext* cxt, re_nfa_t* nfa, char
         Thread* curr_thr = ((Thread*)pop(&ss));
         if (curr_thr->current->label == nfa->accept->label) {
             cxt->did_match = true;
-            for (Thread* it = curr_thr; it != NULL; it = it->previous) {
-                if (it->current->is_tagged) {
-                    updateTagContext(cxt, it->current, it->pos, it->ch);
-                }
-                printf("{%d: %d, %c}", it->current == NULL ?-1:it->current->label, it->pos, it->ch);
-            }
+            showWinningPath(curr_thr, cxt, text);
             printf("\n");
         }
-        for (int i = 0; i < 2; i++) {
+        for (int i = 1; i >= 0; i--) {
             re_nfa_transition_t* trans = curr_thr->current->trans[i];
             if (trans != NULL && trans->is_epsilon) {
                 Thread* t = makeThread(trans->dest, curr_thr, pos, ch);
                 if (!setContains(next, t)) {
-                    //printf("\t%d ->(%s)-> %d \n", curr_thr->current->label, trans->data, trans->dest->label);
                     setAdd(next, t);
                     push(&ss,t);
                 }
@@ -143,12 +140,7 @@ int cmp_states(void* l, void* r) {
 int cmp_threads(void* l, void* r) {
     Thread* lt = (Thread*)l;
     Thread* rt = (Thread*)r;
-    int cmp = cmp_states(lt->current, rt->current); 
-    if (cmp == 0) {
-        if (lt->pos < rt->pos) return -1;
-        if (lt->pos > rt->pos) return 1;
-    }
-    return cmp;
+    return cmp_states(lt->current, rt->current); 
 }
 
 MatchContext* match_re(re_nfa_t* nfa, char* text) {
@@ -157,14 +149,14 @@ MatchContext* match_re(re_nfa_t* nfa, char* text) {
     setAdd(states, makeThread(nfa->start, NULL, 0, text[0]));
     MatchContext* cxt = makeContext();
     states = e_closure(states,cxt, nfa, text, 0);
-    int first_match = -1, last_match = -1;
     int i = 0;
-    Thread* matched = NULL;
     for (i = 0; text[i] != '\0'; i++) {
         states = move(text, i,cxt, states);
         states = e_closure(states,cxt, nfa, text, i);
-        if (setEmpty(states))
-            break;
+        if (setEmpty(states)) {
+            setAdd(states, makeThread(nfa->start, NULL, i, text[i]));
+            states = e_closure(states, cxt, nfa, text, i);
+        }
     }
     rb_destroy(states);
     return cxt;

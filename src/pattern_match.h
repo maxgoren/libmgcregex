@@ -9,12 +9,12 @@ typedef struct MatchBounds {
 } MatchBounds;
 
 
-#define MAX_CAPTURE 255
+#define MAX_CAPTURE 25
 
 typedef struct MatchContext {
     bool did_match;
     int num_groups;
-    MatchBounds* groups[MAX_CAPTURE];
+    MatchBounds groups[MAX_CAPTURE];
 } MatchContext;
 
 MatchContext* match_re(re_nfa_t* nfa, char* text);
