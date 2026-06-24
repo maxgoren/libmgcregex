@@ -120,7 +120,7 @@ re_ast_t* factor(ParseStr_t* str);
 re_ast_t* term(ParseStr_t* str);
 re_ast_t* expr(ParseStr_t* str);
 
-re_ast_t* factor(ParseStr_t* str) {
+re_ast_t* primary(ParseStr_t* str) {
     re_ast_t* node;
     if (expect(str, '(')) {
         match(str, '(');
@@ -134,7 +134,7 @@ re_ast_t* factor(ParseStr_t* str) {
         int og = str->pos;
         int lend = og;
         while (!done(str) && !expect(str, ']')) {
-            lend++; printf("%c ", lookahead(str));
+            lend++;
             advance(str);
         }
         advance(str);
@@ -146,7 +146,11 @@ re_ast_t* factor(ParseStr_t* str) {
         node = make_char_node(lookahead(str));
         match(str, lookahead(str));
     }
+    return node;
+}
 
+re_ast_t* factor(ParseStr_t* str) {
+    re_ast_t* node = primary(str);
     if (expect(str, '*') || expect(str, '+') || expect(str, '?')) {
         re_ast_t* t = make_op_node(lookahead(str));
         match(str, lookahead(str));
