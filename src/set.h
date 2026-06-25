@@ -6,6 +6,7 @@ typedef RedBlackBST OrderedSet;
 typedef rbentry SetItem;
 
 void initSet(OrderedSet* set, int (*cmp)(void*,void*));
+void clearSet(OrderedSet* set);
 void destroySet(OrderedSet* set);
 void setAdd(OrderedSet* set, void* data);
 void setErase(OrderedSet* set, void* data);

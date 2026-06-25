@@ -11,6 +11,11 @@ void destroySet(OrderedSet* set) {
     rb_destroy(set);
 }
 
+void clearSet(OrderedSet* set) {
+    rb_destroy(set);
+    set->root = NULL;
+}
+
 void setAdd(OrderedSet* set, void* data) {
     rb_insert(set, data, data);
 }
