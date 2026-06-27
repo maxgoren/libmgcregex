@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include "nfa.h"
 
+extern bool noisey;
 typedef struct MatchBounds {
     int start;
     int end;
@@ -14,6 +15,7 @@ typedef struct MatchBounds {
 typedef struct Thread {
     re_nfa_state_t* current;
     struct Thread* previous;
+    int id;
     char ch;
     int pos;
 } Thread;

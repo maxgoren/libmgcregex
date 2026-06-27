@@ -13,10 +13,13 @@ void fromStdIn(char* pattern) {
             int i = 0;
             while (cxt->groups[i].start != -1) {
                 printf("Group %d:", i);
-                for (int j = cxt->groups[i].start + (i > 0 && cxt->groups[i].end - cxt->groups[i].start >= 1); j <= cxt->groups[i].end; j++) {
+                for (int j = cxt->groups[i].start; j < cxt->groups[i].end; j++) {
                     printf("%c", buffer[j]);
                 }
-                printf("\n");
+                if (cxt->groups[i].start == cxt->groups[i].end) {
+                    printf("%c",buffer[cxt->groups[i].start]);
+                }
+                printf(" (%d,%d)\n", cxt->groups[i].start, cxt->groups[i].end);
                 i++;
             }
         }
@@ -31,6 +34,12 @@ int main(int argc, char* argv[]) {
         show_use();
         return 0;
     }
-    fromStdIn(argv[1]);
+    if (argc == 2) {
+        noisey = false;
+        fromStdIn(argv[1]);
+    } else {
+        noisey = true;
+        fromStdIn(argv[2]);
+    }
     return 0;
 }

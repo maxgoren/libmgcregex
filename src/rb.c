@@ -124,6 +124,7 @@ rbnode* _insertRB(rbnode* node, void* key, void* value,  int (*cmpfunc)(void*,vo
     } else if (cmp > 0) {
         node->right = _insertRB(node->right, key, value, cmpfunc);
     } else {
+        node->data->key = key;
         node->data->value = value;
     }
     node->size = 1 + size(node->left) + size(node->right);
